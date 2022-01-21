@@ -53,20 +53,35 @@ const moviesRouter = (db) => {
             }
         }
     })
-    router.put("/:id", async (req, res) => {
+    router.put("/:id",
+    body('name').notEmpty().isString().escape(),
+    async (req, res) => {
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) {
+            return res.status(400).json({ errors: errors.array() });
+        }
         if (Object.keys(req.body).length === 0){
             res.status(422).send({error: "Body can't be empty !"})
         } else {
-            const result = await db.collection('categories').doc(req.params.id).update(req.body)
-            res.send({id: result.id})
+            try {
+                db.collection('categories').doc(req.params.id).update({name: req.body.name})
+                res.send({message: "modified successfully"})
+            }catch(error){
+                res.status(422).send({error: "unauthorized field"})
+            }
         }
     })
     router.delete("/:id", async (req, res) => {
         if (Object.keys(req.body).length != 0){
             res.status(422).send({error: "Body must be empty !"})
         } else {
-            const result = await db.collection('categories').doc(req.params.id).delete()
-            res.send({id: result.id})
+            const category = await db.collection('categories').doc(req.params.id).get()
+            if (category.exists){
+                db.collection('categories').doc(req.params.id).delete()
+                res.send({message: "successfully deleted"})
+            }else{
+                res.status(404).send({error: "not found"})
+            }
         }
     })
     
